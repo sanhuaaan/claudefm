@@ -33,6 +33,8 @@ install:
 		install -m 644 input.conf $(CONFIG_DIR)/input.conf; \
 		echo "✓ seeded input.conf at $(CONFIG_DIR)/input.conf"; \
 	fi
+	install -m 644 stats.lua $(CONFIG_DIR)/stats.lua
+	@echo "✓ installed stats.lua to $(CONFIG_DIR)/stats.lua"
 	@echo "✓ installed claudefm to $(BINDIR)/claudefm"
 	@case ":$$PATH:" in \
 		*":$(BINDIR):"*) ;; \

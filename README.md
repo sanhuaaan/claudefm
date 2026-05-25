@@ -81,10 +81,18 @@ Verás:
 
 ```
 → resolving stream...
-♪ Claude FM 🎵 music for thinking and building 2026-05-25 13:39  ·  00:00:29  ·  vol 100%
+♪ claudeFM  ·  🎧 556 ▁▂▃▅▇▆▅  ·  on for 23h 14m  ·  00:00:29
 ```
 
-La línea inferior se actualiza en sitio mientras suena.
+La línea inferior se actualiza en sitio mientras suena. `🎧 N` es la audiencia en directo y la sparkline `▁▂▃▅▇▆▅` muestra cómo ha ido subiendo o bajando durante tu sesión (rolling de los últimos 8 muestreos).
+
+Cómo funciona por dentro:
+
+- Un poller en background relanza `yt-dlp --print '%(concurrent_view_count)s'` cada 30 segundos.
+- Mantiene un buffer rolling de los últimos 8 valores y los mapea a 8 alturas de bloques Unicode (`▁`…`█`).
+- Un script Lua dentro de mpv (`stats.lua`) lee el fichero de status cada segundo y actualiza `force-media-title`, que es lo que aparece en `${media-title}` del status line.
+
+En **modo `--video`** el poller se desactiva: ya estás viendo el live, no hace falta resumirlo.
 
 ### Modo vídeo
 

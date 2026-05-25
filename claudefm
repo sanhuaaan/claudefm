@@ -8,6 +8,8 @@ URL_FILE_XDG="$CONFIG_DIR/url"
 URL_FILE_LOCAL="$SCRIPT_DIR/.claudefm.url"
 INPUT_CONF_XDG="$CONFIG_DIR/input.conf"
 INPUT_CONF_LOCAL="$SCRIPT_DIR/input.conf"
+LUA_SCRIPT_XDG="$CONFIG_DIR/stats.lua"
+LUA_SCRIPT_LOCAL="$SCRIPT_DIR/stats.lua"
 
 VIDEO_MODE=0
 while [[ $# -gt 0 ]]; do
@@ -53,19 +55,85 @@ fi
 YT_URL="$(tr -d '[:space:]' < "$URL_FILE")"
 
 printf '→ resolving stream...\n'
-mapfile -t INFO < <(yt-dlp --no-warnings -f 'bestaudio/worst' --print '%(title)s' --print urls "$YT_URL")
-if [[ "${#INFO[@]}" -lt 2 ]]; then
+mapfile -t INFO < <(yt-dlp --no-warnings -f 'bestaudio/worst' \
+  --print '%(title)s' \
+  --print urls \
+  --print '%(concurrent_view_count)s' \
+  --print '%(release_timestamp)s' \
+  "$YT_URL")
+if [[ "${#INFO[@]}" -lt 4 ]]; then
   printf 'yt-dlp failed to resolve %s\n' "$YT_URL" >&2
   exit 1
 fi
 TITLE="${INFO[0]}"
 STREAM_URL="${INFO[1]}"
+INITIAL_VIEWERS="${INFO[2]}"
+RELEASE_TS="${INFO[3]}"
 
-STATUS_MSG='${?pause==yes:[paused]  }♪ ${media-title}  ·  ${playback-time}  ·  vol ${volume}%'
+STATUS_FILE=""
+POLLER_PID=""
+INITIAL_TITLE="$TITLE"
+
+if (( ! VIDEO_MODE )) && [[ "$INITIAL_VIEWERS" != "NA" && "$RELEASE_TS" != "NA" ]]; then
+  STATUS_FILE="$(mktemp -t claudefm-stats.XXXXXX)"
+  init_secs=$(( $(date +%s) - RELEASE_TS ))
+  init_h=$(( init_secs / 3600 ))
+  init_m=$(( (init_secs % 3600) / 60 ))
+  INITIAL_TITLE="$(printf '🎧 %s ▁  ·  on for %dh %02dm' "$INITIAL_VIEWERS" "$init_h" "$init_m")"
+  printf '%s' "$INITIAL_TITLE" > "$STATUS_FILE"
+
+  (
+    set +e
+    BUF_SIZE=8
+    buffer=( "$INITIAL_VIEWERS" )
+    chars=( "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█" )
+    while :; do
+      sleep 30
+      raw="$(yt-dlp --no-warnings --print '%(concurrent_view_count)s' "$YT_URL" 2>/dev/null)"
+      [[ -z "$raw" || "$raw" == "NA" ]] && continue
+      buffer+=( "$raw" )
+      (( ${#buffer[@]} > BUF_SIZE )) && buffer=( "${buffer[@]:1}" )
+      min=${buffer[0]}; max=${buffer[0]}
+      for v in "${buffer[@]}"; do
+        (( v < min )) && min=$v
+        (( v > max )) && max=$v
+      done
+      range=$(( max - min ))
+      (( range == 0 )) && range=1
+      spark=""
+      for v in "${buffer[@]}"; do
+        idx=$(( (v - min) * 7 / range ))
+        spark+="${chars[idx]}"
+      done
+      secs=$(( $(date +%s) - RELEASE_TS ))
+      h=$(( secs / 3600 ))
+      m=$(( (secs % 3600) / 60 ))
+      printf '🎧 %s %s  ·  on for %dh %02dm' "$raw" "$spark" "$h" "$m" > "$STATUS_FILE.tmp" \
+        && mv "$STATUS_FILE.tmp" "$STATUS_FILE"
+    done
+  ) &
+  POLLER_PID=$!
+fi
+
+cleanup() {
+  if [[ -n "$POLLER_PID" ]]; then
+    kill "$POLLER_PID" 2>/dev/null || true
+  fi
+  if [[ -n "$STATUS_FILE" ]]; then
+    rm -f "$STATUS_FILE" "$STATUS_FILE.tmp"
+  fi
+}
+trap cleanup EXIT INT TERM
+
+if (( VIDEO_MODE )); then
+  STATUS_MSG='${?pause==yes:[paused]  }♪ ${media-title}  ·  ${playback-time}'
+else
+  STATUS_MSG='${?pause==yes:[paused]  }♪ claudeFM  ·  ${media-title}  ·  ${playback-time}'
+fi
 
 MPV_ARGS=(
   --msg-level=all=warn,statusline=status
-  --force-media-title="$TITLE"
+  --force-media-title="$INITIAL_TITLE"
   --term-status-msg="$STATUS_MSG"
 )
 if [[ -r "$INPUT_CONF_XDG" ]]; then
@@ -73,10 +141,17 @@ if [[ -r "$INPUT_CONF_XDG" ]]; then
 elif [[ -r "$INPUT_CONF_LOCAL" ]]; then
   MPV_ARGS+=( --input-conf="$INPUT_CONF_LOCAL" )
 fi
+if [[ -n "$STATUS_FILE" ]]; then
+  if [[ -r "$LUA_SCRIPT_XDG" ]]; then
+    MPV_ARGS+=( --script="$LUA_SCRIPT_XDG" --script-opts="claudefm-stats-file=$STATUS_FILE" )
+  elif [[ -r "$LUA_SCRIPT_LOCAL" ]]; then
+    MPV_ARGS+=( --script="$LUA_SCRIPT_LOCAL" --script-opts="claudefm-stats-file=$STATUS_FILE" )
+  fi
+fi
 if (( VIDEO_MODE )); then
   MPV_ARGS+=( --vo=tct )
 else
   MPV_ARGS+=( --no-video )
 fi
 
-exec mpv "${MPV_ARGS[@]}" "$STREAM_URL"
+mpv "${MPV_ARGS[@]}" "$STREAM_URL"

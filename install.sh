@@ -38,6 +38,9 @@ else
   ok "seeded input.conf at $CONFIG_DIR/input.conf"
 fi
 
+curl -fsSL "$RAW/stats.lua" -o "$CONFIG_DIR/stats.lua"
+ok "stats.lua → $CONFIG_DIR/stats.lua"
+
 if ! command -v yt-dlp >/dev/null 2>&1; then
   say "yt-dlp not found — downloading standalone binary"
   curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
