@@ -143,7 +143,11 @@ cleanup() {
   # doesn't receive raw escape codes when the user moves the mouse.
   {
     stty sane 2>/dev/null || true
-    printf '\e[?1000l\e[?1001l\e[?1002l\e[?1003l\e[?1004l\e[?1005l\e[?1006l\e[?1015l\e[?1016l\e[?2004l\e[?25h\e[?47l\e[?1047l\e[?1049l\e[<u'
+    # \e\\ (ST) closes any dangling APC/OSC/DCS sequence — critical when
+    # mpv's kitty graphics protocol left an unterminated \e_G... open.
+    # Without this, the terminal interprets subsequent bytes (including
+    # mouse input) as part of the pending string instead of escape codes.
+    printf '\e\\\e[?1000l\e[?1001l\e[?1002l\e[?1003l\e[?1004l\e[?1005l\e[?1006l\e[?1015l\e[?1016l\e[?2004l\e[?25h\e[?47l\e[?1047l\e[?1049l\e[<u'
   } </dev/tty >/dev/tty 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
