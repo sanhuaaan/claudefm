@@ -22,40 +22,57 @@ El script no descarga, no cachea, no abre ventana. Solo suena.
 
 ## Instalación
 
-### 1. mpv
+### Opción A — One-liner (recomendado)
+
+Descarga `claudefm`, le siembra una config por defecto en `~/.config/claudefm/url`, y si no tienes `yt-dlp` te baja el binario standalone:
 
 ```bash
-sudo apt install -y mpv
+curl -fsSL https://raw.githubusercontent.com/sanhuaaan/claudefm/main/install.sh | bash
 ```
 
-### 2. yt-dlp (binario standalone, recomendado)
-
-El binario `yt-dlp_linux` empaqueta su propio Python, así que funciona aunque tu sistema tenga Python 3.8:
+Variables opcionales:
 
 ```bash
-mkdir -p ~/.local/bin
-curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
-  -o ~/.local/bin/yt-dlp
-chmod +x ~/.local/bin/yt-dlp
+# Instalar en /usr/local en lugar de ~/.local
+PREFIX=/usr/local curl -fsSL .../install.sh | sudo bash
 ```
 
-Asegúrate de que `~/.local/bin` está en tu `PATH` antes que `/usr/bin` (lo normal en Ubuntu).
-
-> Si tu sistema tiene Python 3.10+ ya instalado, también vale `pipx install yt-dlp` o `pip install --user yt-dlp`. El binario `yt-dlp_linux` es la opción más a prueba de balas.
-
-### 3. claudefm
+Después solo necesitas `mpv` instalado a través del gestor de paquetes:
 
 ```bash
-git clone https://github.com/sanhuaaan/claudefm.git ~/claudefm
-chmod +x ~/claudefm/claudefm
-# Opcional: añade un alias
-echo 'alias claudefm="~/claudefm/claudefm"' >> ~/.bashrc
+sudo apt install -y mpv     # Debian / Ubuntu
+brew install mpv            # macOS
 ```
+
+### Opción B — Clone + make install
+
+```bash
+git clone https://github.com/sanhuaaan/claudefm.git
+cd claudefm
+make check      # verifica que mpv y yt-dlp están disponibles
+make install    # copia claudefm a ~/.local/bin y siembra ~/.config/claudefm/url
+```
+
+Para desinstalar: `make uninstall` (deja la config intacta).
+
+Variables del Makefile (`make help` las lista): `PREFIX`, `BINDIR`, `CONFIG_DIR`.
+
+### Sobre yt-dlp
+
+`yt-dlp` cambia cada pocas semanas porque YouTube rota tokens y endpoints internos. Tres formas de tenerlo:
+
+- **Binario standalone** (lo que hace `install.sh`): un solo ejecutable autosuficiente con Python embebido.
+  ```bash
+  curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
+    -o ~/.local/bin/yt-dlp && chmod +x ~/.local/bin/yt-dlp
+  ```
+- **pipx** (si tienes Python ≥ 3.10): `pipx install yt-dlp`. Actualiza con `pipx upgrade yt-dlp`.
+- **apt**: **NO recomendado**. La versión del paquete suele ir meses por detrás y falla con "Precondition check failed".
 
 ## Uso
 
 ```bash
-./claudefm
+claudefm
 ```
 
 Verás:
@@ -80,13 +97,15 @@ La línea inferior se actualiza en sitio mientras suena.
 
 ### Cambiar el stream
 
-Edita `.claudefm.url`:
+Tras instalar, edita `~/.config/claudefm/url`:
 
-```
-https://www.youtube.com/watch?v=OTRO_VIDEO_ID
+```bash
+$EDITOR ~/.config/claudefm/url
 ```
 
-Cualquier live de YouTube vale. Cuando YouTube tire el live actual de claudeFM y suban uno nuevo, solo cambias esta línea.
+El fichero contiene una sola línea con la URL del live de YouTube. Cualquier live vale. Si claudeFM tira el live actual y suben uno nuevo, solo cambias esta línea.
+
+> En modo dev (desde el clone, sin `make install`), el script lee `./.claudefm.url` del propio repo como fallback.
 
 ### Personalizar la línea de estado
 

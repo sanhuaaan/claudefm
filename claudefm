@@ -3,7 +3,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-URL_FILE="$SCRIPT_DIR/.claudefm.url"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/claudefm"
+URL_FILE_XDG="$CONFIG_DIR/url"
+URL_FILE_LOCAL="$SCRIPT_DIR/.claudefm.url"
 
 require() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -15,8 +17,12 @@ require() {
 require yt-dlp
 require mpv
 
-if [[ ! -r "$URL_FILE" ]]; then
-  printf 'no URL configured at %s\n' "$URL_FILE" >&2
+if [[ -r "$URL_FILE_XDG" ]]; then
+  URL_FILE="$URL_FILE_XDG"
+elif [[ -r "$URL_FILE_LOCAL" ]]; then
+  URL_FILE="$URL_FILE_LOCAL"
+else
+  printf 'no URL configured (expected at %s)\n' "$URL_FILE_XDG" >&2
   exit 1
 fi
 
