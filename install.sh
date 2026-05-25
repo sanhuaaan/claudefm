@@ -31,6 +31,13 @@ else
   ok "seeded default config at $CONFIG_DIR/url"
 fi
 
+if [[ -f "$CONFIG_DIR/input.conf" ]]; then
+  ok "keeping existing input.conf at $CONFIG_DIR/input.conf"
+else
+  curl -fsSL "$RAW/input.conf" -o "$CONFIG_DIR/input.conf"
+  ok "seeded input.conf at $CONFIG_DIR/input.conf"
+fi
+
 if ! command -v yt-dlp >/dev/null 2>&1; then
   say "yt-dlp not found — downloading standalone binary"
   curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \

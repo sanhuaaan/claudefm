@@ -99,9 +99,12 @@ Con `--video`, mpv usa el driver `tct` (true-color terminal) y dibuja cada frame
 | Tecla | Acción |
 |-------|--------|
 | `space` | Pausa / reanuda |
-| `9` / `0` | Baja / sube volumen |
+| `↑` / `↓` o `+` / `-` | Sube / baja volumen |
+| Rueda del ratón | Sube / baja volumen |
 | `m` | Mute |
 | `q` o `Ctrl+C` | Salir |
+
+> Estos bindings los carga claudefm desde `input.conf` (en `~/.config/claudefm/` tras instalar, o en la raíz del repo en modo dev). El `9`/`0` por defecto de mpv también debería funcionar en versiones modernas, pero algunas builds antiguas lo tienen roto — por eso enviamos los nuestros.
 
 ## Configuración
 

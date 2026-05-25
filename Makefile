@@ -27,6 +27,12 @@ install:
 		install -m 644 .claudefm.url $(CONFIG_DIR)/url; \
 		echo "✓ seeded default config at $(CONFIG_DIR)/url"; \
 	fi
+	@if [ -f $(CONFIG_DIR)/input.conf ]; then \
+		echo "✓ keeping existing input.conf at $(CONFIG_DIR)/input.conf"; \
+	else \
+		install -m 644 input.conf $(CONFIG_DIR)/input.conf; \
+		echo "✓ seeded input.conf at $(CONFIG_DIR)/input.conf"; \
+	fi
 	@echo "✓ installed claudefm to $(BINDIR)/claudefm"
 	@case ":$$PATH:" in \
 		*":$(BINDIR):"*) ;; \
