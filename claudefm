@@ -43,6 +43,17 @@ require() {
 require yt-dlp
 require mpv
 
+# Snap mpv has private /tmp and no access to hidden $HOME dirs.
+# Detect it and route runtime files through the snap's own writable area.
+SNAP_MPV=0
+if [[ "$(command -v mpv)" == /snap/* ]]; then
+  SNAP_MPV=1
+  RUNTIME_DIR="$HOME/snap/mpv/common/claudefm"
+  mkdir -p "$RUNTIME_DIR"
+else
+  RUNTIME_DIR="${TMPDIR:-/tmp}"
+fi
+
 if [[ -r "$URL_FILE_XDG" ]]; then
   URL_FILE="$URL_FILE_XDG"
 elif [[ -r "$URL_FILE_LOCAL" ]]; then
@@ -54,7 +65,12 @@ fi
 
 YT_URL="$(tr -d '[:space:]' < "$URL_FILE")"
 
-mapfile -t INFO < <(yt-dlp --no-warnings -f 'bestaudio/worst' \
+if (( VIDEO_MODE )); then
+  FORMAT='best[height<=480]/worst'
+else
+  FORMAT='bestaudio/worst'
+fi
+mapfile -t INFO < <(yt-dlp --no-warnings -f "$FORMAT" \
   --print '%(title)s' \
   --print urls \
   --print '%(concurrent_view_count)s' \
@@ -74,7 +90,7 @@ POLLER_PID=""
 INITIAL_TITLE="$TITLE"
 
 if (( ! VIDEO_MODE )) && [[ "$INITIAL_VIEWERS" != "NA" && "$RELEASE_TS" != "NA" ]]; then
-  STATUS_FILE="$(mktemp -t claudefm-stats.XXXXXX)"
+  STATUS_FILE="$(mktemp "$RUNTIME_DIR/stats.XXXXXX")"
   init_secs=$(( $(date +%s) - RELEASE_TS ))
   init_h=$(( init_secs / 3600 ))
   init_m=$(( (init_secs % 3600) / 60 ))
@@ -135,20 +151,41 @@ MPV_ARGS=(
   --force-media-title="$INITIAL_TITLE"
   --term-status-msg="$STATUS_MSG"
 )
+snap_safe_path() {
+  local src="$1" dest_name="$2"
+  if (( SNAP_MPV )); then
+    cp "$src" "$RUNTIME_DIR/$dest_name"
+    printf '%s' "$RUNTIME_DIR/$dest_name"
+  else
+    printf '%s' "$src"
+  fi
+}
+
+INPUT_PATH=""
 if [[ -r "$INPUT_CONF_XDG" ]]; then
-  MPV_ARGS+=( --input-conf="$INPUT_CONF_XDG" )
+  INPUT_PATH="$(snap_safe_path "$INPUT_CONF_XDG" input.conf)"
 elif [[ -r "$INPUT_CONF_LOCAL" ]]; then
-  MPV_ARGS+=( --input-conf="$INPUT_CONF_LOCAL" )
+  INPUT_PATH="$(snap_safe_path "$INPUT_CONF_LOCAL" input.conf)"
 fi
+[[ -n "$INPUT_PATH" ]] && MPV_ARGS+=( --input-conf="$INPUT_PATH" )
+
 if [[ -n "$STATUS_FILE" ]]; then
+  LUA_PATH=""
   if [[ -r "$LUA_SCRIPT_XDG" ]]; then
-    MPV_ARGS+=( --script="$LUA_SCRIPT_XDG" --script-opts="statspath=$STATUS_FILE" )
+    LUA_PATH="$(snap_safe_path "$LUA_SCRIPT_XDG" stats.lua)"
   elif [[ -r "$LUA_SCRIPT_LOCAL" ]]; then
-    MPV_ARGS+=( --script="$LUA_SCRIPT_LOCAL" --script-opts="statspath=$STATUS_FILE" )
+    LUA_PATH="$(snap_safe_path "$LUA_SCRIPT_LOCAL" stats.lua)"
+  fi
+  if [[ -n "$LUA_PATH" ]]; then
+    MPV_ARGS+=( --script="$LUA_PATH" --script-opts="statspath=$STATUS_FILE" )
   fi
 fi
 if (( VIDEO_MODE )); then
-  MPV_ARGS+=( --vo=tct )
+  if [[ "${TERM:-}" == "xterm-kitty" || -n "${KITTY_WINDOW_ID:-}" ]]; then
+    MPV_ARGS+=( --vo=kitty )
+  else
+    MPV_ARGS+=( --vo=tct )
+  fi
 else
   MPV_ARGS+=( --no-video )
 fi

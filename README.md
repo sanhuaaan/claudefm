@@ -96,11 +96,16 @@ En **modo `--video`** el poller se desactiva: ya estás viendo el live, no hace 
 
 ### Modo vídeo
 
-Con `--video`, mpv usa el driver `tct` (true-color terminal) y dibuja cada frame del live como bloques `▀` coloreados. Mejor en terminales truecolor (kitty, alacritty, wezterm, foot, gnome-terminal moderno). Caveats:
+Con `--video`, claudefm pinta el live dentro de la terminal. El driver de mpv se elige automáticamente:
 
-- Usa bastante más CPU que el modo audio (mpv reescala el vídeo a tu tamaño de terminal frame a frame).
-- La resolución es la de tu terminal en caracteres — mejor pantalla grande, fuente pequeña.
-- Si tu mpv es ≥ 0.36 y estás en kitty, prueba `--vo=kitty` editando el script para render pixel-perfect via el [kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
+- **kitty terminal** (`$TERM=xterm-kitty`): usa `--vo=kitty`, render pixel-perfect via el [kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/). Cada frame se envía como PNG codificado en escape sequences. Calidad cercana al vídeo nativo.
+- **Otras terminales truecolor**: usa `--vo=tct`, dibuja cada par de píxeles como un bloque `▀` con dos colores ANSI. Más blocky pero funciona en cualquier emulador moderno.
+
+Caveats:
+
+- En `--video` el stream se sirve a 480p (en lugar de 144p del modo audio). Más bandwidth, más CPU, pero la diferencia visual en kitty graphics protocol es notable.
+- Requiere mpv ≥ 0.36 para `--vo=kitty`. El paquete `apt mpv` en Ubuntu 20.04 va por 0.32 — instala el snap (`sudo snap install mpv`) para tener una versión moderna con todos los VOs.
+- Si mpv es del snap, claudefm detecta automáticamente las restricciones de filesystem (private /tmp, sin acceso a dotfiles) y enruta los ficheros de runtime a través de `~/snap/mpv/common/claudefm/`.
 
 ### Controles (de mpv)
 
