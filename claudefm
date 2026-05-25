@@ -54,7 +54,6 @@ fi
 
 YT_URL="$(tr -d '[:space:]' < "$URL_FILE")"
 
-printf '→ resolving stream...\n'
 mapfile -t INFO < <(yt-dlp --no-warnings -f 'bestaudio/worst' \
   --print '%(title)s' \
   --print urls \
@@ -143,9 +142,9 @@ elif [[ -r "$INPUT_CONF_LOCAL" ]]; then
 fi
 if [[ -n "$STATUS_FILE" ]]; then
   if [[ -r "$LUA_SCRIPT_XDG" ]]; then
-    MPV_ARGS+=( --script="$LUA_SCRIPT_XDG" --script-opts="claudefm-stats-file=$STATUS_FILE" )
+    MPV_ARGS+=( --script="$LUA_SCRIPT_XDG" --script-opts="statspath=$STATUS_FILE" )
   elif [[ -r "$LUA_SCRIPT_LOCAL" ]]; then
-    MPV_ARGS+=( --script="$LUA_SCRIPT_LOCAL" --script-opts="claudefm-stats-file=$STATUS_FILE" )
+    MPV_ARGS+=( --script="$LUA_SCRIPT_LOCAL" --script-opts="statspath=$STATUS_FILE" )
   fi
 fi
 if (( VIDEO_MODE )); then
