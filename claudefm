@@ -137,6 +137,10 @@ cleanup() {
   if [[ -n "$STATUS_FILE" ]]; then
     rm -f "$STATUS_FILE" "$STATUS_FILE.tmp"
   fi
+  # mpv (especially with --vo=kitty / --vo=tct) leaves the terminal in
+  # mouse-reporting mode on exit. Send the disable sequences so the shell
+  # doesn't receive raw escape codes when the user moves the mouse.
+  printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?25h' >/dev/tty 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
@@ -150,6 +154,7 @@ MPV_ARGS=(
   --msg-level=all=warn,statusline=status
   --force-media-title="$INITIAL_TITLE"
   --term-status-msg="$STATUS_MSG"
+  --input-cursor=no
 )
 snap_safe_path() {
   local src="$1" dest_name="$2"
