@@ -138,9 +138,13 @@ cleanup() {
     rm -f "$STATUS_FILE" "$STATUS_FILE.tmp"
   fi
   # mpv (especially with --vo=kitty / --vo=tct) leaves the terminal in
-  # mouse-reporting mode on exit. Send the disable sequences so the shell
+  # several stateful modes on exit (mouse reporting, focus events, alt
+  # screen, bracketed paste). Comprehensively reset them so the shell
   # doesn't receive raw escape codes when the user moves the mouse.
-  printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?25h' >/dev/tty 2>/dev/null || true
+  {
+    stty sane 2>/dev/null || true
+    printf '\e[?1000l\e[?1001l\e[?1002l\e[?1003l\e[?1004l\e[?1005l\e[?1006l\e[?1015l\e[?1016l\e[?2004l\e[?25h\e[?47l\e[?1047l\e[?1049l\e[<u'
+  } </dev/tty >/dev/tty 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
