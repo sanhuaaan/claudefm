@@ -12,18 +12,25 @@ LUA_SCRIPT_XDG="$CONFIG_DIR/stats.lua"
 LUA_SCRIPT_LOCAL="$SCRIPT_DIR/stats.lua"
 
 VIDEO_MODE=0
+FORCE_BLOCKS=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -v|--video) VIDEO_MODE=1; shift ;;
+    --blocks) VIDEO_MODE=1; FORCE_BLOCKS=1; shift ;;
     -h|--help)
       cat <<EOF
-Usage: claudefm [-v|--video]
+Usage: claudefm [-v|--video] [--blocks]
 
 Play the claudeFM YouTube live in your terminal.
 
 Options:
-  -v, --video    Render the video as truecolor terminal blocks (mpv --vo=tct).
-                 Higher CPU usage. Default: audio only.
+  -v, --video    Render the video in the terminal. In kitty, uses the
+                 graphics protocol (pixel-perfect); elsewhere falls back
+                 to truecolor half-blocks (--vo=tct). Default: audio only.
+  --blocks       Force half-blocks rendering (--vo=tct) even in kitty.
+                 Useful over slow SSH (smaller per-frame payload than
+                 PNG-based kitty graphics) or if you prefer the look.
+                 Implies --video.
   -h, --help     Show this help.
 
 Controls (while playing): space=pause  ↑/↓ or +/-=volume  m=mute  q=quit
@@ -194,7 +201,7 @@ if [[ -n "$STATUS_FILE" ]]; then
   fi
 fi
 if (( VIDEO_MODE )); then
-  if [[ "${TERM:-}" == "xterm-kitty" || -n "${KITTY_WINDOW_ID:-}" ]]; then
+  if (( ! FORCE_BLOCKS )) && [[ "${TERM:-}" == "xterm-kitty" || -n "${KITTY_WINDOW_ID:-}" ]]; then
     MPV_ARGS+=( --vo=kitty )
   else
     MPV_ARGS+=( --vo=tct )

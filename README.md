@@ -73,7 +73,8 @@ Variables del Makefile (`make help` las lista): `PREFIX`, `BINDIR`, `CONFIG_DIR`
 
 ```bash
 claudefm              # solo audio (default)
-claudefm --video      # renderiza el vídeo como bloques truecolor en la terminal
+claudefm --video      # renderiza el vídeo en la terminal (auto: kitty o bloques)
+claudefm --blocks     # fuerza modo bloques (tct) incluso dentro de kitty
 claudefm --help       # opciones y controles
 ```
 
@@ -100,6 +101,8 @@ Con `--video`, claudefm pinta el live dentro de la terminal. El driver de mpv se
 
 - **kitty terminal** (`$TERM=xterm-kitty`): usa `--vo=kitty`, render pixel-perfect via el [kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/). Cada frame se envía como PNG codificado en escape sequences. Calidad cercana al vídeo nativo.
 - **Otras terminales truecolor**: usa `--vo=tct`, dibuja cada par de píxeles como un bloque `▀` con dos colores ANSI. Más blocky pero funciona en cualquier emulador moderno.
+
+Con `--blocks` fuerzas `--vo=tct` aunque estés en kitty. Útil sobre **SSH lento** (cada frame del modo kitty es un PNG completo, y los bloques suelen mandar menos bytes en escenas planas) o si simplemente prefieres la estética blocky.
 
 Caveats:
 
