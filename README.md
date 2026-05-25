@@ -72,7 +72,9 @@ Variables del Makefile (`make help` las lista): `PREFIX`, `BINDIR`, `CONFIG_DIR`
 ## Uso
 
 ```bash
-claudefm
+claudefm              # solo audio (default)
+claudefm --video      # renderiza el vídeo como bloques truecolor en la terminal
+claudefm --help       # opciones y controles
 ```
 
 Verás:
@@ -83,6 +85,14 @@ Verás:
 ```
 
 La línea inferior se actualiza en sitio mientras suena.
+
+### Modo vídeo
+
+Con `--video`, mpv usa el driver `tct` (true-color terminal) y dibuja cada frame del live como bloques `▀` coloreados. Mejor en terminales truecolor (kitty, alacritty, wezterm, foot, gnome-terminal moderno). Caveats:
+
+- Usa bastante más CPU que el modo audio (mpv reescala el vídeo a tu tamaño de terminal frame a frame).
+- La resolución es la de tu terminal en caracteres — mejor pantalla grande, fuente pequeña.
+- Si tu mpv es ≥ 0.36 y estás en kitty, prueba `--vo=kitty` editando el script para render pixel-perfect via el [kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
 
 ### Controles (de mpv)
 

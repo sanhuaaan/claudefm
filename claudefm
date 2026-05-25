@@ -7,6 +7,28 @@ CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/claudefm"
 URL_FILE_XDG="$CONFIG_DIR/url"
 URL_FILE_LOCAL="$SCRIPT_DIR/.claudefm.url"
 
+VIDEO_MODE=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -v|--video) VIDEO_MODE=1; shift ;;
+    -h|--help)
+      cat <<EOF
+Usage: claudefm [-v|--video]
+
+Play the claudeFM YouTube live in your terminal.
+
+Options:
+  -v, --video    Render the video as truecolor terminal blocks (mpv --vo=tct).
+                 Higher CPU usage. Default: audio only.
+  -h, --help     Show this help.
+
+Controls (while playing): space=pause  9/0=volume  m=mute  q=quit
+EOF
+      exit 0 ;;
+    *) printf 'unknown option: %s\n' "$1" >&2; exit 1 ;;
+  esac
+done
+
 require() {
   if ! command -v "$1" >/dev/null 2>&1; then
     printf 'missing dependency: %s\n' "$1" >&2
@@ -39,9 +61,15 @@ STREAM_URL="${INFO[1]}"
 
 STATUS_MSG='${?pause==yes:[paused]  }♪ ${media-title}  ·  ${playback-time}  ·  vol ${volume}%'
 
-exec mpv \
-  --no-video \
-  --msg-level=all=warn,statusline=status \
-  --force-media-title="$TITLE" \
-  --term-status-msg="$STATUS_MSG" \
-  "$STREAM_URL"
+MPV_ARGS=(
+  --msg-level=all=warn,statusline=status
+  --force-media-title="$TITLE"
+  --term-status-msg="$STATUS_MSG"
+)
+if (( VIDEO_MODE )); then
+  MPV_ARGS+=( --vo=tct )
+else
+  MPV_ARGS+=( --no-video )
+fi
+
+exec mpv "${MPV_ARGS[@]}" "$STREAM_URL"
